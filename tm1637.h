@@ -110,5 +110,6 @@ void TM1637_blink_colon(bool value);
 void test_wyswietlacza();
 void TM1637_wyswietl_liczbe (uint16_t liczba);
 void TM1637_blink();
+void TM1637_wyswietl_czas (uint8_t minuty, uint8_t sekundy);
 
 #endif	/* !_ATTINY_TM1637_H_ */

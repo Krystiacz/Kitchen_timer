@@ -9,6 +9,8 @@
 #include "tm1637.h"
 #include "my_config.h"
 #include "Enkoder/enkoder.h"
+#include "I2C_TWI/i2c_twi.h"
+#include "DS3231/ds3231.h"
 
 //DEKLARACJA ZMIENNYCH W PRZERWANIU
 volatile uint16_t timer1;
@@ -21,8 +23,10 @@ uint8_t miganie;
 uint8_t koniec;
 uint8_t alarm;
 uint8_t sleep_time=0;
-
-
+uint8_t setting_time;
+TDATETIME datetime;
+uint8_t colon=1;
+uint8_t blink=1;
 
 // Inicjalizacja enkodera.
 static inline void encoderInit() {
@@ -55,10 +59,18 @@ void encoderEvent(encEvent_t const event) {
         char liczba[4];
         switch (event.rotate) {
         case CW: // Ruch w kierunku wskazówek zegara.
+
+
+
                 mm++;
                 BUZ_ON;
 				_delay_ms(2);
 				BUZ_OFF;
+
+
+
+
+
                 break;
         case CCW: // Ruch w przeciwnym kierunku do wskazówek zegara.
                 mm--;
@@ -77,15 +89,26 @@ void encoderEvent(encEvent_t const event) {
         }
         switch (event.button) {
         case SHORT: // Krótkie wciœniêcie przycisku.
-                start = !start;
-                if(alarm) alarm=0;
-                if (start && alarm)
+
+
+
+                start = !start;  // zmiana stanu przycisku na przeciwny
+                if(alarm) alarm=0;   // Je¿li jest stan alarmu i naciœniêto przycisk- wy³¹cz alarm
+                /*if (start && alarm)
                 	{
                 		start=0;
                 		BUZ_ON; _delay_ms(100); BUZ_OFF;
-                	}
+                	}*/
 
                 if (start && !mm && !ss) start=0;
+
+            	if (setting_time)
+            				{
+            					DS3231_set_time (datetime.hh++ , datetime.mm , datetime.ss);
+            				}
+
+
+
                 break;
         case LONG: // D³u¿sze wciœniêcie przycisku.
 
@@ -111,12 +134,20 @@ int main(void)
 	TM1637_set_brightness(7);
 	timer_config();
 	io_init();
+	i2cSetBitrate (100);
+	ds3231_init();
+	//DS3231_set_time (21, 54 , 00);
+
+
+
+	//TTEMP temperature;
 
 
 	sei();
 
 	while (1) {
 
+		DS3231_get_datetime (&datetime);  // Pobieranie czasu z uk³adu DS3231
 
 		// DEBUGGING
 		/*if (start)
@@ -132,10 +163,12 @@ int main(void)
 			timer1 = 199;  //bylo 199
 
 
+
 			if ((mm || ss) && start)  // Jeœli minuty LUB sekundy maj¹ jak¹kolwiek wartosc I start=1
 			{
 				 ss--;                // zmniejsz liczbê sekund o jeden
 				 miganie=0;           // nie migaj wyœwietlaczem
+				 TM1637_wyswietl_czas(mm,ss);
 
 				 	 if (ss<0)        // jeœli sekundy s¹ mniejsze od 0
 				 	 {
@@ -146,7 +179,7 @@ int main(void)
 					 if (!ss && !mm)  // jeœli czas dojdzie do zera (minuty I sekundy bêd¹ równe zero)
 					 {
 						start = 0;   // zresetuj zmienn¹ odpowiedzialn¹ za przycisk
-						alarm=20;    // uruchom alarm
+						alarm=100;    // uruchom alarm
 
 					 }
 
@@ -165,7 +198,7 @@ int main(void)
 			}
 			else
 			{
-				TM1637_wyswietl_czas(mm,ss);
+
 
 			}
 
@@ -188,31 +221,52 @@ int main(void)
 		}
 
 
-
-		TM1637_display_colon(true);
-
-
-
-		if (!timer3)
-		{
-			timer3 = 1000;
-			sleep_time++;
-		}
-
 		if (mm||ss)
 		{
 			TM1637_wyswietl_czas(mm,ss);
 			TM1637_enable(true);
+			TM1637_display_colon(1);
 		}
-		else
+		/*else
 		{
-			TM1637_enable(false);
-		}
+			//TM1637_enable(false);
+
+		}*/
 
 		if (alarm)
 		{
-			TM1637_blink();
+			TM1637_wyswietl_liczbe(0000);
+			//TM1637_blink();
+			if (!timer3)
+			{
+				timer3 = 20;
+				TM1637_enable(blink^=1);
+			}
 		}
+
+		//***************** WYSWIETLANIE ZEGARA GDY TIMER NIEAKTYWNY *****************************
+
+
+
+		if (mm==0 && ss==0 && !alarm)
+		{
+			show_time(&datetime);
+			//TM1637_display_colon(true);
+			TM1637_enable(true);
+			setting_time=1;
+
+			if (!timer3)
+					{
+						timer3 = 100;
+						TM1637_display_colon(colon^=1);
+					}
+
+		}
+		else
+		{
+			setting_time=0;
+		}
+	   // *****************************************************************************************
 
 
 
