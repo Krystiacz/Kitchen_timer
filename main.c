@@ -129,7 +129,7 @@ int main(void)
 
 		if (!timer1)
 		{
-			timer1 = 10;  //bylo 199
+			timer1 = 199;  //bylo 199
 
 
 			if ((mm || ss) && start)  // Jeœli minuty LUB sekundy maj¹ jak¹kolwiek wartosc I start=1
@@ -166,7 +166,7 @@ int main(void)
 			else
 			{
 				TM1637_wyswietl_czas(mm,ss);
-				TM1637_enable(true);
+
 			}
 
 		}
@@ -175,7 +175,7 @@ int main(void)
 		if (!timer2)
 		{
 			// obs³uga alarmu
-			timer2 = 100;          // by³o 2
+			timer2 = 50;     // by³o 2
 			if (alarm) alarm--;
 			if (alarm%2) {
 					BUZ_ON;
@@ -188,7 +188,7 @@ int main(void)
 		}
 
 
-		TM1637_wyswietl_czas(mm,ss);
+
 		TM1637_display_colon(true);
 
 
@@ -199,9 +199,19 @@ int main(void)
 			sleep_time++;
 		}
 
-		if (!ss && !mm && sleep_time)
+		if (mm||ss)
 		{
-			//TM1637_enable(false);
+			TM1637_wyswietl_czas(mm,ss);
+			TM1637_enable(true);
+		}
+		else
+		{
+			TM1637_enable(false);
+		}
+
+		if (alarm)
+		{
+			TM1637_blink();
 		}
 
 
